@@ -5,7 +5,6 @@ import { DEFAULT_OPTIONS } from "../constants";
 import {
   deploy_collection,
   deploy_token,
-  get_balance,
   getTPS,
   resolveSolDomain,
   getPrimaryDomain,
@@ -55,6 +54,37 @@ export class SolanaAgentKit {
     this.wallet_address = this.wallet.publicKey;
     this.openai_api_key = openai_api_key;
   }
+  // My custom tools
+  async createUserWallet(id: number) {
+    const apiKey = process.env.CROSSMINT_API_KEY || ""
+    const response = await fetch("https://staging.crossmint.com/api/v1-alpha2/wallets", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "solana-mpc-wallet",
+        linkedUser: "userId:".concat(id.toString())
+      })
+    })
+    const data = await response.json()
+    console.log(data)
+    return data
+  }
+  async getUserWalletBalance(id: number) {
+    const apiKey = process.env.CROSSMINT_API_KEY || ""
+    const response = await fetch(`https://staging.crossmint.com/api/v1-alpha2/wallets/userId:${id}:solana-mpc-wallet/balances?currencies=sol`, {
+      method: "GET",
+      headers: {
+        "X-API-KEY": apiKey,
+        "Content-Type": "application/json"
+      }
+    })
+    const data = await response.json()
+    console.log(data)
+    return data
+  }
 
   // Tool methods
   async requestFaucetFunds() {
@@ -73,10 +103,6 @@ export class SolanaAgentKit {
 
   async deployCollection(options: CollectionOptions) {
     return deploy_collection(this, options);
-  }
-
-  async getBalance(token_address?: PublicKey) {
-    return get_balance(this, token_address);
   }
 
   async mintNFT(

@@ -8,30 +8,67 @@ import { BN } from "@coral-xyz/anchor";
 import { FEE_TIERS } from "../tools";
 import { toJSON } from "../utils/toJSON";
 
-export class SolanaBalanceTool extends Tool {
-  name = "solana_balance";
-  description = `Get the balance of a Solana wallet or token account.
 
-  If you want to get the balance of your wallet, you don't need to provide the tokenAddress.
-  If no tokenAddress is provided, the balance will be in SOL.
-
-  Inputs:
-  tokenAddress: string, eg "So11111111111111111111111111111111111111112" (optional)`;
+export class CreateUserWallet extends Tool {
+  name = "create_user_wallet";
+  description = `Create a new wallet for the user.
+    Creates a solana wallet for the user based on their userId
+    Inputs:
+    userId: number, eg 1158700339 (required)
+    `;
 
   constructor(private solanaKit: SolanaAgentKit) {
     super();
   }
 
-  protected async _call(input: string): Promise<string> {
+  protected async _call(input: number): Promise<string> {
     try {
-      const tokenAddress = input ? new PublicKey(input) : undefined;
-      const balance = await this.solanaKit.getBalance(tokenAddress);
-
+      const result = await this.solanaKit.createUserWallet(input);
       return JSON.stringify({
         status: "success",
-        balance: balance,
-        token: input || "SOL",
+        message: "Created a new wallet sucessfully ".concat(result.address),
+        data: result,
       });
+    } catch (error: any) {
+      return JSON.stringify({
+        status: "error",
+        message: error.message,
+        code: error.code || "UNKNOWN_ERROR",
+      });
+    }
+  }
+}
+
+
+export class SolanaBalanceTool extends Tool {
+  name = "solana_balance";
+  description = `Get the balance of the Solana wallet.
+
+  Get the solana wallet balance of the specific user based on the userId of the user
+
+  Inputs:
+  userId: number, eg 1158700339 (required)`;
+
+  constructor(private solanaKit: SolanaAgentKit) {
+    super();
+  }
+
+  protected async _call(userId: number): Promise<string> {
+    try {
+      const response = await this.solanaKit.getUserWalletBalance(userId)
+      if (response.error) {
+        return JSON.stringify({
+          status: "error",
+          response: response.message,
+          token: "SOL",
+        });
+      } else {
+        return JSON.stringify({
+          status: "success",
+          response: response,
+          token: "SOL",
+        });
+      }
     } catch (error: any) {
       return JSON.stringify({
         status: "error",
@@ -982,6 +1019,7 @@ export class SolanaOpenbookCreateMarket extends Tool {
 
 export function createSolanaTools(solanaKit: SolanaAgentKit) {
   return [
+    new CreateUserWallet(solanaKit),
     new SolanaBalanceTool(solanaKit),
     new SolanaTransferTool(solanaKit),
     new SolanaDeployTokenTool(solanaKit),

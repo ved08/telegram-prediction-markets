@@ -1,12 +1,14 @@
 import { SolanaAgentKit } from "../src";
 import { createSolanaTools } from "../src/langchain";
-import { HumanMessage } from "@langchain/core/messages";
+import { HumanMessage, MessageContent } from "@langchain/core/messages";
 import { MemorySaver } from "@langchain/langgraph";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as readline from "readline";
+import { Bot } from "grammy"
+import { PromptTemplate } from "@langchain/core/prompts";
 
 dotenv.config();
 
@@ -117,44 +119,38 @@ async function runAutonomousMode(agent: any, config: any, interval = 10) {
   }
 }
 
+const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN || "");
+const botUsername = "vedisnoobot"
+
 async function runChatMode(agent: any, config: any) {
-  console.log("Starting chat mode... Type 'exit' to end.");
+  console.log("Starting chat mode... Open telegram to chat.");
+  bot.on("message:text", async (ctx) => {
+    let { text } = ctx.message
+    let userid = ctx.from.id
+    console.log("userId: ", userid)
+    const isTagged = text.includes(`@${botUsername}`);
+    if (!isTagged) return;
 
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  const question = (prompt: string): Promise<string> =>
-    new Promise(resolve => rl.question(prompt, resolve));
-
-  try {
-    while (true) {
-      const userInput = await question("\nPrompt: ");
-
-      if (userInput.toLowerCase() === "exit") {
-        break;
-      }
-
-      const stream = await agent.stream({ messages: [new HumanMessage(userInput)] }, config);
-
-      for await (const chunk of stream) {
-        if ("agent" in chunk) {
-          console.log(chunk.agent.messages[0].content);
-        } else if ("tools" in chunk) {
-          console.log(chunk.tools.messages[0].content);
-        }
-        console.log("-------------------");
+    try {
+      const userContext = `User context: message from userId ${userid} \n`
+      const userMessage = `User message: ${text}`
+      const agentFinalState = await agent.invoke(
+        { messages: [new HumanMessage(userContext + userMessage)] },
+        { configurable: { thread_id: userid.toString() } },
+      );
+      const agentReply: MessageContent = agentFinalState.messages[agentFinalState.messages.length - 1].content
+      console.log(
+        "Agent reply: ",
+        agentReply
+      );
+      ctx.reply(agentReply.toString())
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Error:", error.message);
       }
     }
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error("Error:", error.message);
-    }
-    process.exit(1);
-  } finally {
-    rl.close();
-  }
+  })
+  bot.start()
 }
 
 async function chooseMode(): Promise<"chat" | "auto"> {
