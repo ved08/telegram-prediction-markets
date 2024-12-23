@@ -14,7 +14,6 @@ export class CreateBet extends Tool {
   This will run the createBet tool with the specified parameters
    Inputs (input is a JSON string):
   userId: number, eg 1158700339 (required)
-  creatorAddress: string, eg "91Q1XdVxobuAjX8vcKj4PruC7KZsaEL3cU5cH61WyDmw" (required)
   poolAmount: number, eg 4 (required)
   min: number, eg 0.5 (required)
   max: number, eg 2 (required)
@@ -26,8 +25,9 @@ export class CreateBet extends Tool {
   protected async _call(input: string): Promise<string> {
     // protected async _call(input: string, x?: string): Promise<string> {
     const inp = JSON.parse(input)
+    const creatorAddress = await this.solanaKit.getAddressFromUserId(inp.userId)
     try {
-      const result = await this.solanaKit.createBet(inp.userId, inp.creatorAddress, inp.poolAmount, inp.min, inp.max, inp.seed)
+      const result = await this.solanaKit.createBet(inp.userId, creatorAddress.address, inp.poolAmount, inp.min, inp.max, inp.seed)
       console.log("bet created", result)
       return JSON.stringify({
         status: "success",

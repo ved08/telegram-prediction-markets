@@ -57,6 +57,17 @@ export class SolanaAgentKit {
   async createBet(id: number, creatorAddress: string, poolAmount: number, min: number, max: number, seed: number) {
     return create_bet(id, creatorAddress, poolAmount, min, max, seed)
   }
+  async getAddressFromUserId(userId: number) {
+    const response = await fetch(`https://staging.crossmint.com/api/v1-alpha2/wallets/userId:${userId}:solana-mpc-wallet`, {
+      method: "GET",
+      headers: {
+        "X-API-KEY": process.env.CROSSMINT_API_KEY || "",
+        "Content-Type": "application/json"
+      }
+    })
+    const data = await response.json()
+    return data
+  }
   async createUserWallet(id: number) {
     const apiKey = process.env.CROSSMINT_API_KEY || ""
     const response = await fetch("https://staging.crossmint.com/api/v1-alpha2/wallets", {

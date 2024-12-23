@@ -73,7 +73,7 @@ export async function create_bet(id: number, creatorAddress: string, poolAmount:
     // const sig = await connection.simulateTransaction(transaction)
     console.log("simulated transaction: ", sig)
     return {
-        data: data,
+        data,
         status: "successfully simulated transaction",
         error: false
     }
