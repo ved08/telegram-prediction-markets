@@ -5,9 +5,45 @@ import { SolanaAgentKit } from "../index";
 import { create_image } from "../tools/create_image";
 import { fetchPrice } from "../tools/fetch_price";
 import { BN } from "@coral-xyz/anchor";
-import { FEE_TIERS } from "../tools";
 import { toJSON } from "../utils/toJSON";
 
+export class CreateBet extends Tool {
+  name = "solana_create_bet";
+  description = `Create a new bet.
+  The bet creator can create a new bet/wager/prediction market using the creator wallet address, seed, pool amount, minimum amount, and maximum amount
+  This will run the createBet tool with the specified parameters
+   Inputs (input is a JSON string):
+  userId: number, eg 1158700339 (required)
+  creatorAddress: string, eg "91Q1XdVxobuAjX8vcKj4PruC7KZsaEL3cU5cH61WyDmw" (required)
+  poolAmount: number, eg 4 (required)
+  min: number, eg 0.5 (required)
+  max: number, eg 2 (required)
+  seed: number, eg 11234 (required)
+  `
+  constructor(private solanaKit: SolanaAgentKit) {
+    super()
+  }
+  protected async _call(input: string): Promise<string> {
+    // protected async _call(input: string, x?: string): Promise<string> {
+    const inp = JSON.parse(input)
+    try {
+      const result = await this.solanaKit.createBet(inp.userId, inp.creatorAddress, inp.poolAmount, inp.min, inp.max, inp.seed)
+      console.log("bet created", result)
+      return JSON.stringify({
+        status: "success",
+        message: "Created a new bet with seed: ".concat(inp.seed.toString()),
+        data: result,
+      });
+    }
+    catch (error: any) {
+      return JSON.stringify({
+        status: "error",
+        message: error.message,
+        code: error.code || "UNKNOWN_ERROR",
+      });
+    }
+  }
+}
 
 export class CreateUserWallet extends Tool {
   name = "create_user_wallet";
@@ -81,12 +117,7 @@ export class SolanaBalanceTool extends Tool {
 
 export class SolanaTransferTool extends Tool {
   name = "solana_transfer";
-  description = `Transfer tokens or SOL to another address ( also called as wallet address ).
-
-  Inputs ( input is a JSON string ):
-  to: string, eg "8x2dR8Mpzuz2YqyZyZjUbYWKSWesBo5jMx2Q9Y86udVk" (required)
-  amount: number, eg 1 (required)
-  mint?: string, eg "So11111111111111111111111111111111111111112" or "SENDdRQtYMWaQrBroBrJ2Q53fgVuq95CV9UPGEvpCxa" (optional)`;
+  description = `Transfer tokens or SOL to another address ( also called as wallet address ).`;
 
   constructor(private solanaKit: SolanaAgentKit) {
     super();
@@ -127,14 +158,7 @@ export class SolanaTransferTool extends Tool {
 
 export class SolanaDeployTokenTool extends Tool {
   name = "solana_deploy_token";
-  description = `Deploy a new token on Solana blockchain.
-
-  Inputs (input is a JSON string):
-  name: string, eg "My Token" (required)
-  uri: string, eg "https://example.com/token.json" (required) 
-  symbol: string, eg "MTK" (required)
-  decimals?: number, eg 9 (optional, defaults to 9)
-  initialSupply?: number, eg 1000000 (optional)`;
+  description = `Deploy a new token on Solana blockchain.`;
 
   constructor(private solanaKit: SolanaAgentKit) {
     super();
@@ -534,7 +558,7 @@ export class SolanaPumpfunTokenLaunchTool extends Tool {
 export class SolanaCreateImageTool extends Tool {
   name = "solana_create_image";
   description =
-    "Create an image using OpenAI's DALL-E. Input should be a string prompt for the image.";
+    "Input should be a string prompt for the image.";
 
   constructor(private solanaKit: SolanaAgentKit) {
     super();
@@ -785,62 +809,6 @@ export class SolanaCompressedAirdropTool extends Tool {
     }
   }
 }
-
-export class SolanaCreateSingleSidedWhirlpoolTool extends Tool {
-  name = "create_orca_single_sided_whirlpool";
-  description = `Create a single-sided Whirlpool with liquidity.
-
-  Inputs (input is a JSON string):
-  - depositTokenAmount: number, eg: 1000000000 (required, in units of deposit token including decimals)
-  - depositTokenMint: string, eg: "DepositTokenMintAddress" (required, mint address of deposit token)
-  - otherTokenMint: string, eg: "OtherTokenMintAddress" (required, mint address of other token)
-  - initialPrice: number, eg: 0.001 (required, initial price of deposit token in terms of other token)
-  - maxPrice: number, eg: 5.0 (required, maximum price at which liquidity is added)
-  - feeTier: number, eg: 0.30 (required, fee tier for the pool)`;
-
-  constructor(private solanaKit: SolanaAgentKit) {
-    super();
-  }
-
-  async _call(input: string): Promise<string> {
-    try {
-      const inputFormat = JSON.parse(input);
-      const depositTokenAmount = new BN(inputFormat.depositTokenAmount);
-      const depositTokenMint = new PublicKey(inputFormat.depositTokenMint);
-      const otherTokenMint = new PublicKey(inputFormat.otherTokenMint);
-      const initialPrice = new Decimal(inputFormat.initialPrice);
-      const maxPrice = new Decimal(inputFormat.maxPrice);
-      const feeTier = inputFormat.feeTier;
-
-      if (!feeTier || !(feeTier in FEE_TIERS)) {
-        throw new Error(`Invalid feeTier. Available options: ${Object.keys(FEE_TIERS).join(", ")}`);
-      }
-
-      const txId = await this.solanaKit.createOrcaSingleSidedWhirlpool(
-        depositTokenAmount,
-        depositTokenMint,
-        otherTokenMint,
-        initialPrice,
-        maxPrice,
-        feeTier,
-      );
-
-      return JSON.stringify({
-        status: "success",
-        message: "Single-sided Whirlpool created successfully",
-        transaction: txId,
-      });
-    } catch (error: any) {
-      return JSON.stringify({
-        status: "error",
-        message: error.message,
-        code: error.code || "UNKNOWN_ERROR",
-      });
-    }
-  }
-}
-
-
 export class SolanaRaydiumCreateAmmV4 extends Tool {
   name = "raydium_create_ammV4";
   description = `Raydium's Legacy AMM that requiers an OpenBook marketID
@@ -1020,30 +988,30 @@ export class SolanaOpenbookCreateMarket extends Tool {
 export function createSolanaTools(solanaKit: SolanaAgentKit) {
   return [
     new CreateUserWallet(solanaKit),
+    new CreateBet(solanaKit),
     new SolanaBalanceTool(solanaKit),
     new SolanaTransferTool(solanaKit),
     new SolanaDeployTokenTool(solanaKit),
     new SolanaDeployCollectionTool(solanaKit),
-    new SolanaMintNFTTool(solanaKit),
-    new SolanaTradeTool(solanaKit),
-    new SolanaRequestFundsTool(solanaKit),
-    new SolanaRegisterDomainTool(solanaKit),
-    new SolanaGetWalletAddressTool(solanaKit),
-    new SolanaPumpfunTokenLaunchTool(solanaKit),
-    new SolanaCreateImageTool(solanaKit),
-    new SolanaLendAssetTool(solanaKit),
-    new SolanaTPSCalculatorTool(solanaKit),
-    new SolanaStakeTool(solanaKit),
-    new SolanaFetchPriceTool(solanaKit),
-    new SolanaResolveDomainTool(solanaKit),
-    new SolanaGetDomainTool(solanaKit),
-    new SolanaTokenDataTool(solanaKit),
-    new SolanaTokenDataByTickerTool(solanaKit),
-    new SolanaCompressedAirdropTool(solanaKit),
-    new SolanaRaydiumCreateAmmV4(solanaKit),
-    new SolanaRaydiumCreateClmm(solanaKit),
-    new SolanaRaydiumCreateCpmm(solanaKit),
-    new SolanaOpenbookCreateMarket(solanaKit),
-    new SolanaCreateSingleSidedWhirlpoolTool(solanaKit),
+    // new SolanaMintNFTTool(solanaKit),
+    // new SolanaTradeTool(solanaKit),
+    // new SolanaRequestFundsTool(solanaKit),
+    // new SolanaRegisterDomainTool(solanaKit),
+    // new SolanaGetWalletAddressTool(solanaKit),
+    // new SolanaPumpfunTokenLaunchTool(solanaKit),
+    // new SolanaCreateImageTool(solanaKit),
+    // new SolanaLendAssetTool(solanaKit),
+    // new SolanaTPSCalculatorTool(solanaKit),
+    // new SolanaStakeTool(solanaKit),
+    // new SolanaFetchPriceTool(solanaKit),
+    // new SolanaResolveDomainTool(solanaKit),
+    // new SolanaGetDomainTool(solanaKit),
+    // new SolanaTokenDataTool(solanaKit),
+    // new SolanaTokenDataByTickerTool(solanaKit),
+    // new SolanaCompressedAirdropTool(solanaKit),
+    // new SolanaRaydiumCreateAmmV4(solanaKit),
+    // new SolanaRaydiumCreateClmm(solanaKit),
+    // new SolanaRaydiumCreateCpmm(solanaKit),
+    // new SolanaOpenbookCreateMarket(solanaKit),
   ];
 }

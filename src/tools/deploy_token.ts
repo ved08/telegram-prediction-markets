@@ -36,7 +36,7 @@ export async function deploy_token(
       uri,
       symbol,
       sellerFeeBasisPoints: {
-        basisPoints: 0n,
+        basisPoints: BigInt(1),
         identifier: "%",
         decimals: 2,
       },

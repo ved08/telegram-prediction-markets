@@ -23,8 +23,7 @@ import {
   getTokenDataByTicker,
   stakeWithJup,
   sendCompressedAirdrop,
-  createOrcaSingleSidedWhirlpool,
-  FEE_TIERS
+  create_bet
 } from "../tools";
 import { CollectionOptions, PumpFunTokenOptions } from "../types";
 import { BN } from "@coral-xyz/anchor";
@@ -55,6 +54,9 @@ export class SolanaAgentKit {
     this.openai_api_key = openai_api_key;
   }
   // My custom tools
+  async createBet(id: number, creatorAddress: string, poolAmount: number, min: number, max: number, seed: number) {
+    return create_bet(id, creatorAddress, poolAmount, min, max, seed)
+  }
   async createUserWallet(id: number) {
     const apiKey = process.env.CROSSMINT_API_KEY || ""
     const response = await fetch("https://staging.crossmint.com/api/v1-alpha2/wallets", {
@@ -192,25 +194,6 @@ export class SolanaAgentKit {
       priorityFeeInLamports,
       shouldLog
     );
-  }
-
-  async createOrcaSingleSidedWhirlpool(
-    depositTokenAmount: BN,
-    depositTokenMint: PublicKey,
-    otherTokenMint: PublicKey,
-    initialPrice: Decimal,
-    maxPrice: Decimal,
-    feeTier: keyof typeof FEE_TIERS,
-  ) {
-    return createOrcaSingleSidedWhirlpool(
-      this,
-      depositTokenAmount,
-      depositTokenMint,
-      otherTokenMint,
-      initialPrice,
-      maxPrice,
-      feeTier
-    )
   }
 
   async raydiumCreateAmmV4(
